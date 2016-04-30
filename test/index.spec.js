@@ -1,4 +1,4 @@
-var Pool = require('../lib/index');
+var Pool = require('../lib/index.min');
 var chai = require('chai');
 var sinon = require('sinon');
 var sinonChai = require("sinon-chai");

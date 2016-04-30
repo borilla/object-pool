@@ -1,20 +1,24 @@
-const _poolIndex = typeof Symbol === 'function' ? Symbol('_poolIndex') : '_poolIndex';
+const _poolIndexStr = '_poolIndex';
+const _poolIndex = typeof Symbol === 'function' ? Symbol(_poolIndexStr) : _poolIndexStr;
 
 class Pool {
 	constructor(Type) {
-		this._Type = Type;
-		this._store = [];
-		this._storeTopIndex = -1;
-		this._isLocked = false;
+		const pool = this;
+
+		pool._Type = Type;
+		pool._store = [];
+		pool._storeTopIndex = -1;
+		pool._isLocked = false;
 	}
 
 	allocate() {
-		const store = this._store;
-		const storeTopIndex = ++this._storeTopIndex;
-		const Type = this._Type;
+		const pool = this;
+		const store = pool._store;
+		const storeTopIndex = ++pool._storeTopIndex;
+		const Type = pool._Type;
 		let item;
 
-		this._checkIsNotLocked('allocate');
+		checkIsNotLocked(pool, 'allocate');
 
 		if (storeTopIndex === store.length) {
 			// call "new" with args sent to "allocate" (handy use of spread operator :D)
@@ -22,7 +26,7 @@ class Pool {
 			store.push(item);
 		}
 		else {
-			item = store[this._storeTopIndex];
+			item = store[pool._storeTopIndex];
 			// call constructor function with args sent to "allocate"
 			Type.apply(item, arguments);
 		}
@@ -33,54 +37,59 @@ class Pool {
 	}
 
 	release(item) {
+		const pool = this;
 		const index = item[_poolIndex];
 
-		this._checkIsNotLocked('release');
+		checkIsNotLocked(pool, 'release');
 		checkIsAllocated(item);
 
-		if (index < this._storeTopIndex) {
-			let topItem = this._store[this._storeTopIndex];
+		if (index < pool._storeTopIndex) {
+			let topItem = pool._store[pool._storeTopIndex];
 
 			topItem[_poolIndex] = index;
-			this._store[index] = topItem;
-			this._store[this._storeTopIndex] = item;
+			pool._store[index] = topItem;
+			pool._store[pool._storeTopIndex] = item;
 		}
 
 		item[_poolIndex] = null;
-		this._storeTopIndex--;
+		pool._storeTopIndex--;
 	}
 
 	clean() {
-		this._checkIsNotLocked('clean');
-		this._store.length = this._storeTopIndex + 1;
+		const pool = this;
+
+		checkIsNotLocked(pool, 'clean');
+		pool._store.length = pool._storeTopIndex + 1;
 	}
 
 	forEach(fn) {
-		const store = this._store;
+		const pool = this;
+		const store = pool._store;
 
-		this._checkIsNotLocked('forEach');
-		this._isLocked = true;
+		checkIsNotLocked(pool, 'forEach');
+		pool._isLocked = true;
 
-		for (let i = 0, l = this._storeTopIndex + 1; i < l; ++i) {
+		for (let i = 0, l = pool._storeTopIndex + 1; i < l; ++i) {
 			fn(store[i], i);
 		}
 
-		this._isLocked = false;
+		pool._isLocked = false;
 	}
 
 	info() {
-		let allocated = this._storeTopIndex + 1;
+		const pool = this;
+		const allocated = pool._storeTopIndex + 1;
 
 		return {
 			allocated,
-			released: this._store.length - allocated
+			released: pool._store.length - allocated
 		};
 	}
+}
 
-	_checkIsNotLocked(action) {
-		if (this._isLocked) {
-			throw Error('Cannot perform "' + action + '" while inside "forEach" loop');
-		}
+function checkIsNotLocked(pool, action) {
+	if (pool._isLocked) {
+		throw Error('Cannot perform "' + action + '" while inside "forEach" loop');
 	}
 }
 
