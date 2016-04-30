@@ -1,4 +1,4 @@
-const _poolIndex = Symbol('_poolIndex');
+const _poolIndex = typeof Symbol === 'function' ? Symbol('_poolIndex') : '_poolIndex';
 
 class Pool {
 	constructor(Type) {
@@ -36,6 +36,7 @@ class Pool {
 		const index = item[_poolIndex];
 
 		this._checkIsNotLocked('release');
+		checkIsAllocated(item);
 
 		if (index < this._storeTopIndex) {
 			let topItem = this._store[this._storeTopIndex];
@@ -45,6 +46,7 @@ class Pool {
 			this._store[this._storeTopIndex] = item;
 		}
 
+		item[_poolIndex] = null;
 		this._storeTopIndex--;
 	}
 
@@ -53,7 +55,6 @@ class Pool {
 		this._store.length = this._storeTopIndex + 1;
 	}
 
-	// NOTE: What if we "allocate" or "release" while performing "forEach"?
 	forEach(fn) {
 		const store = this._store;
 
@@ -67,22 +68,25 @@ class Pool {
 		this._isLocked = false;
 	}
 
+	info() {
+		let allocated = this._storeTopIndex + 1;
+
+		return {
+			allocated,
+			released: this._store.length - allocated
+		};
+	}
+
 	_checkIsNotLocked(action) {
 		if (this._isLocked) {
 			throw Error('Cannot perform "' + action + '" while inside "forEach" loop');
 		}
 	}
+}
 
-	toString() {
-		let allocated = this._storeTopIndex + 1;
-		let unallocated = this._store.length - allocated;
-		let items = this._store.slice(0, allocated);
-
-		return 'Allocated: ' + allocated
-			+ ', Unallocated: ' + unallocated + '\n'
-			+ items.map(function (item) {
-				return '' + item;
-			}).join(', ');
+function checkIsAllocated(item) {
+	if (typeof item[_poolIndex] !== 'number') {
+		throw Error('Item is not currently allocated');
 	}
 }
 
