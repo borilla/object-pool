@@ -1,8 +1,9 @@
 var Pool = require('../lib/index.min');
 var chai = require('chai');
 var sinon = require('sinon');
-var sinonChai = require("sinon-chai");
+var sinonChai = require('sinon-chai');
 var expect = chai.expect;
+
 chai.use(sinonChai);
 
 describe('object-pool', function () {
@@ -34,8 +35,8 @@ describe('object-pool', function () {
 
 		describe('when there are no current released items', function () {
 			beforeEach(function () {
-				var temp1 = pool.allocate();
-				var temp2 = pool.allocate();
+				pool.allocate();
+				pool.allocate();
 
 				Type.reset();
 				item = pool.allocate(arg1, arg2);
@@ -47,7 +48,7 @@ describe('object-pool', function () {
 			});
 
 			it('should pass args to constructor', function () {
-				expect(Type.calledWith(arg1, arg2)).to.be.true;
+				expect(Type).to.be.calledWith(arg1, arg2);
 			});
 
 			it('should return an object of type Type', function () {
@@ -64,10 +65,10 @@ describe('object-pool', function () {
 
 		describe('when there are current released items', function () {
 			beforeEach(function () {
-				var temp1 = pool.allocate();
-				var temp2 = pool.allocate();
+				var temp = pool.allocate();
 
-				pool.release(temp1);
+				pool.allocate();
+				pool.release(temp);
 				Type.reset();
 				item = pool.allocate(arg1, arg2);
 			});
@@ -78,7 +79,7 @@ describe('object-pool', function () {
 			});
 
 			it('should pass args to constructor', function () {
-				expect(Type.calledWith(arg1, arg2)).to.be.true;
+				expect(Type).to.be.calledWith(arg1, arg2);
 			});
 
 			it('should return an object of type Type', function () {

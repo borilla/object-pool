@@ -1,91 +1,91 @@
-const _poolIndexStr = '_poolIndex';
-const _poolIndex = typeof Symbol === 'function' ? Symbol(_poolIndexStr) : _poolIndexStr;
+var _poolIndexStr = '_poolIndex';
+var _poolIndex = typeof Symbol === 'function' ? Symbol(_poolIndexStr) : _poolIndexStr;
+var poolPrototype = Pool.prototype;
+var bind = Function.prototype.bind;
 
-class Pool {
-	constructor(Type) {
-		const pool = this;
+function Pool(Type) {
+	var pool = this;
 
-		pool._Type = Type;
-		pool._store = [];
-		pool._storeTopIndex = -1;
-		pool._isLocked = false;
-	}
-
-	allocate() {
-		const pool = this;
-		const store = pool._store;
-		const storeTopIndex = ++pool._storeTopIndex;
-		const Type = pool._Type;
-		let item;
-
-		checkIsNotLocked(pool, 'allocate');
-
-		if (storeTopIndex === store.length) {
-			// call "new" with args sent to "allocate" (handy use of spread operator :D)
-			item = new Type(...arguments);
-			store.push(item);
-		}
-		else {
-			item = store[pool._storeTopIndex];
-			// call constructor function with args sent to "allocate"
-			Type.apply(item, arguments);
-		}
-
-		item[_poolIndex] = storeTopIndex;
-
-		return item;
-	}
-
-	release(item) {
-		const pool = this;
-		const index = item[_poolIndex];
-
-		checkIsNotLocked(pool, 'release');
-		checkIsAllocated(item);
-
-		if (index < pool._storeTopIndex) {
-			let topItem = pool._store[pool._storeTopIndex];
-
-			topItem[_poolIndex] = index;
-			pool._store[index] = topItem;
-			pool._store[pool._storeTopIndex] = item;
-		}
-
-		item[_poolIndex] = null;
-		pool._storeTopIndex--;
-	}
-
-	clean() {
-		const pool = this;
-
-		checkIsNotLocked(pool, 'clean');
-		pool._store.length = pool._storeTopIndex + 1;
-	}
-
-	forEach(fn) {
-		const pool = this;
-		const store = pool._store;
-
-		checkIsNotLocked(pool, 'forEach');
-		pool._isLocked = true;
-
-		for (let i = 0, l = pool._storeTopIndex + 1; i < l; ++i) {
-			fn(store[i], i);
-		}
-
-		pool._isLocked = false;
-	}
-
-	info() {
-		const pool = this;
-		const allocated = pool._storeTopIndex + 1;
-
-		return {
-			allocated,
-			released: pool._store.length - allocated
-		};
-	}
+	pool._Type = Type;
+	pool._store = [];
+	pool._storeTopIndex = -1;
+	pool._isLocked = false;
 }
+
+poolPrototype.allocate = function () {
+	var pool = this;
+	var store = pool._store;
+	var storeTopIndex = ++pool._storeTopIndex;
+	var Type = pool._Type;
+	var item;
+
+	checkIsNotLocked(pool, 'allocate');
+
+	if (storeTopIndex === store.length) {
+		item = newTypeWithArgs(Type, arguments);
+		store.push(item);
+	}
+	else {
+		item = store[pool._storeTopIndex];
+		// call "Type()" with args sent to "allocate"
+		Type.apply(item, arguments);
+	}
+
+	item[_poolIndex] = storeTopIndex;
+
+	return item;
+};
+
+poolPrototype.release = function (item) {
+	var pool = this;
+	var index = item[_poolIndex];
+	var topItem;
+
+	checkIsNotLocked(pool, 'release');
+	checkIsAllocated(item);
+
+	if (index < pool._storeTopIndex) {
+		topItem = pool._store[pool._storeTopIndex];
+		topItem[_poolIndex] = index;
+		pool._store[index] = topItem;
+		pool._store[pool._storeTopIndex] = item;
+	}
+
+	item[_poolIndex] = null;
+	pool._storeTopIndex--;
+};
+
+poolPrototype.clean = function () {
+	var pool = this;
+
+	checkIsNotLocked(pool, 'clean');
+	pool._store.length = pool._storeTopIndex + 1;
+};
+
+poolPrototype.forEach = function (fn) {
+	var pool = this;
+	var store = pool._store;
+	var i, l;
+
+	checkIsNotLocked(pool, 'forEach');
+	pool._isLocked = true;
+
+	for (i = 0, l = pool._storeTopIndex + 1; i < l; ++i) {
+		fn(store[i], i);
+	}
+
+	pool._isLocked = false;
+};
+
+poolPrototype.info = function () {
+	var pool = this;
+	var allocated = pool._storeTopIndex + 1;
+
+	return {
+		allocated: allocated,
+		released: pool._store.length - allocated
+	};
+};
 
 function checkIsNotLocked(pool, action) {
 	if (pool._isLocked) {
@@ -97,6 +97,31 @@ function checkIsAllocated(item) {
 	if (typeof item[_poolIndex] !== 'number') {
 		throw Error('Item is not currently allocated');
 	}
+}
+
+// equivalent to es2015 "new Type(...args)"
+function newTypeWithArgs(Type, args) {
+	var length = args.length;
+	var arr, i;
+
+	switch (length) {
+	case 0:
+		return new Type();
+	case 1:
+		return new Type(args[0]);
+	case 2:
+		return new Type(args[0], args[1]);
+	case 3:
+		return new Type(args[0], args[1], args[2]);
+	}
+
+	arr = Array(length + 1);
+	arr.push(null);
+	for (i = 0; i < length; ++i) {
+		arr[i + 1] = args[i];
+	}
+
+	return new (bind.apply(Type, arr));
 }
 
 module.exports = Pool;
