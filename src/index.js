@@ -1,5 +1,6 @@
-var _poolIndexStr = '_poolIndex';
-var _poolIndex = typeof Symbol === 'function' ? Symbol(_poolIndexStr) : _poolIndexStr;
+'use strict';
+
+var _poolIndex = '_poolIndex';
 var poolPrototype = Pool.prototype;
 var bind = Function.prototype.bind;
 
@@ -116,7 +117,7 @@ function newTypeWithArgs(Type, args) {
 	}
 
 	arr = Array(length + 1);
-	arr.push(null);
+	arr[0] = null;
 	for (i = 0; i < length; ++i) {
 		arr[i + 1] = args[i];
 	}

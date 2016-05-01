@@ -32,6 +32,8 @@ describe('object-pool', function () {
 		var item;
 		var arg1 = 'arg1';
 		var arg2 = 'arg2';
+		var arg3 = 'arg3';
+		var arg4 = 'arg4';
 
 		describe('when there are no current released items', function () {
 			beforeEach(function () {
@@ -39,7 +41,7 @@ describe('object-pool', function () {
 				pool.allocate();
 
 				Type.reset();
-				item = pool.allocate(arg1, arg2);
+				item = pool.allocate(arg1, arg2, arg3, arg4);
 			});
 
 			it('should call Type constructor with new', function () {
@@ -48,7 +50,7 @@ describe('object-pool', function () {
 			});
 
 			it('should pass args to constructor', function () {
-				expect(Type).to.be.calledWith(arg1, arg2);
+				expect(Type).to.be.calledWithExactly(arg1, arg2, arg3, arg4);
 			});
 
 			it('should return an object of type Type', function () {
@@ -79,7 +81,7 @@ describe('object-pool', function () {
 			});
 
 			it('should pass args to constructor', function () {
-				expect(Type).to.be.calledWith(arg1, arg2);
+				expect(Type).to.be.calledWithExactly(arg1, arg2);
 			});
 
 			it('should return an object of type Type', function () {

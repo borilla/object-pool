@@ -2,12 +2,12 @@
   "name": "@borilla/object-pool",
   "version": "0.1.0",
   "description": "Reusable pool of objects to reduce garbage collection",
-  "main": "lib/index.js",
+  "main": "lib/index.min.js",
   "scripts": {
     "minify": "uglifyjs src/index.js --compress --mangle-props --mangle-regex=\"/^_/\" --mangle toplevel --screw-ie8 --output lib/index.min.js",
     "lint": "eslint src/ test/",
     "unit-test": "mocha test/",
-    "test": "npm run minify && npm run lint && npm run unit-test",
+    "test": "npm run minify && npm run unit-test && npm run lint",
     "prepublish": "npm test"
   },
   "keywords": [
