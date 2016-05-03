@@ -1,6 +1,8 @@
 # Object-pool
 Reusable pool of objects to reduce garbage collection
-## Usage
+
+## How to use
+
 ### Creating a new pool
 ```javascript
 var Pool = require('@borilla/object-pool');
@@ -17,15 +19,15 @@ var myPool = new Pool(Type);
 // get a [new or released] item from the pool
 var myItem = myPool.allocate('arg1', 'arg2');
 ```
-* Internally, constructor will effectively be called as `new MyType()` or `MyType.apply(item)` depending on whether we're re-using a released item or not
-* In either case, any provided arguments will be passed to constructor function
+* Internally, constructor will effectively be called as `new MyType()` or `MyType.apply(item)` depending on whether we're creating a new item or reallocating a previously released one respectively
+* In either case, any arguments provided to `allocate()` will be passed to the constructor function
 
 ### Releasing an item
 ```javascript
-// release myItem for re-allocation
+// release myItem for reallocation
 myPool.release(myItem);
 ```
-* Will mark the released item as no longer used so make it available for re-allocation
+* Will mark the released item as no longer used so make it available for reallocation
 
 ### Iterating through allocated items
 ```javascript
