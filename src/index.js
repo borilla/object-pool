@@ -1,6 +1,6 @@
 'use strict';
 
-var _poolIndex = '_poolIndex';
+var poolIndex = '_poolIndex';
 var poolPrototype = Pool.prototype;
 var bind = Function.prototype.bind;
 
@@ -22,24 +22,26 @@ poolPrototype.allocate = function () {
 
 	checkIsNotLocked(pool, 'allocate');
 
+	// if no released slots in store
 	if (storeTopIndex === store.length) {
-		item = newTypeWithArgs(Type, arguments);
+		// create a new item and add it to store
+		item = this._createNewItem.apply(this, arguments);
 		store.push(item);
 	}
 	else {
+		// get a released item and call constructor function on it
 		item = store[pool._storeTopIndex];
-		// call "Type()" with args sent to "allocate"
 		Type.apply(item, arguments);
 	}
 
-	item[_poolIndex] = storeTopIndex;
+	item[poolIndex] = storeTopIndex;
 
 	return item;
 };
 
 poolPrototype.release = function (item) {
 	var pool = this;
-	var index = item[_poolIndex];
+	var index = item[poolIndex];
 	var topItem;
 
 	checkIsNotLocked(pool, 'release');
@@ -47,12 +49,12 @@ poolPrototype.release = function (item) {
 
 	if (index < pool._storeTopIndex) {
 		topItem = pool._store[pool._storeTopIndex];
-		topItem[_poolIndex] = index;
+		topItem[poolIndex] = index;
 		pool._store[index] = topItem;
 		pool._store[pool._storeTopIndex] = item;
 	}
 
-	item[_poolIndex] = null;
+	item[poolIndex] = null;
 	pool._storeTopIndex--;
 };
 
@@ -72,7 +74,7 @@ poolPrototype.forEach = function (fn) {
 	pool._isLocked = true;
 
 	for (i = 0, l = pool._storeTopIndex + 1; i < l; ++i) {
-		fn(store[i], i);
+		fn(store[i]);
 	}
 
 	pool._isLocked = false;
@@ -88,32 +90,25 @@ poolPrototype.info = function () {
 	};
 };
 
-function checkIsNotLocked(pool, action) {
-	if (pool._isLocked) {
-		throw Error('Cannot perform "' + action + '" while inside "forEach" loop');
-	}
-}
-
-function checkIsAllocated(item) {
-	if (typeof item[_poolIndex] !== 'number') {
-		throw Error('Item is not currently allocated');
-	}
-}
-
-// equivalent to es2015 "new Type(...args)"
-function newTypeWithArgs(Type, args) {
+// equivalent to es2015 "new this.Type(...arguments)"
+poolPrototype._createNewItem = function (arg0, arg1, arg2, arg3) {
+	var Type = this._Type;
+	var args = arguments;
 	var length = args.length;
 	var arr, i;
 
+	// if fewer than five arguments then save creating an array
 	switch (length) {
 	case 0:
 		return new Type();
 	case 1:
-		return new Type(args[0]);
+		return new Type(arg0);
 	case 2:
-		return new Type(args[0], args[1]);
+		return new Type(arg0, arg1);
 	case 3:
-		return new Type(args[0], args[1], args[2]);
+		return new Type(arg0, arg1, arg2);
+	case 4:
+		return new Type(arg0, arg1, arg2, arg3);
 	}
 
 	arr = Array(length + 1);
@@ -123,6 +118,18 @@ function newTypeWithArgs(Type, args) {
 	}
 
 	return new (bind.apply(Type, arr));
+};
+
+function checkIsNotLocked(pool, action) {
+	if (pool._isLocked) {
+		throw Error('Cannot perform "' + action + '" while inside "forEach" loop');
+	}
+}
+
+function checkIsAllocated(item) {
+	if (typeof item[poolIndex] !== 'number') {
+		throw Error('Item is not currently allocated');
+	}
 }
 
 module.exports = Pool;

@@ -7,6 +7,11 @@ var expect = chai.expect;
 chai.use(sinonChai);
 
 describe('object-pool', function () {
+	var arg0 = 'arg0';
+	var arg1 = 'arg1';
+	var arg2 = 'arg2';
+	var arg3 = 'arg3';
+	var arg4 = 'arg4';
 	var sandbox, Type, pool;
 
 	beforeEach(function () {
@@ -30,16 +35,10 @@ describe('object-pool', function () {
 
 	describe('allocate', function () {
 		var item;
-		var arg1 = 'arg1';
-		var arg2 = 'arg2';
-		var arg3 = 'arg3';
-		var arg4 = 'arg4';
 
-		describe('when there are no current released items', function () {
+		describe('when there are no released items', function () {
 			beforeEach(function () {
-				pool.allocate();
-				pool.allocate();
-
+				initialisePool(2, 0);
 				Type.reset();
 				item = pool.allocate(arg1, arg2, arg3, arg4);
 			});
@@ -65,12 +64,9 @@ describe('object-pool', function () {
 			});
 		});
 
-		describe('when there are current released items', function () {
+		describe('when there is a released item', function () {
 			beforeEach(function () {
-				var temp = pool.allocate();
-
-				pool.allocate();
-				pool.release(temp);
+				initialisePool(2, 1);
 				Type.reset();
 				item = pool.allocate(arg1, arg2);
 			});
@@ -95,12 +91,50 @@ describe('object-pool', function () {
 				});
 			});
 		});
+
+		describe('when creating new items', function () {
+			beforeEach(function () {
+				pool.allocate(arg0);
+				pool.allocate(arg0, arg1);
+				pool.allocate(arg0, arg1, arg2);
+				pool.allocate(arg0, arg1, arg2, arg3);
+				pool.allocate(arg0, arg1, arg2, arg3, arg4);
+			});
+
+			it('should always pass correct arguments', function () {
+				expect(Type).to.be.calledWithExactly(arg0);
+				expect(Type).to.be.calledWithExactly(arg0, arg1);
+				expect(Type).to.be.calledWithExactly(arg0, arg1, arg2);
+				expect(Type).to.be.calledWithExactly(arg0, arg1, arg2, arg3);
+				expect(Type).to.be.calledWithExactly(arg0, arg1, arg2, arg3, arg4);
+			});
+		});
+
+		describe('when reallocating released items', function () {
+			beforeEach(function () {
+				initialisePool(5, 5);
+				Type.reset();
+				pool.allocate(arg0);
+				pool.allocate(arg0, arg1);
+				pool.allocate(arg0, arg1, arg2);
+				pool.allocate(arg0, arg1, arg2, arg3);
+				pool.allocate(arg0, arg1, arg2, arg3, arg4);
+			});
+
+			it('should always pass correct arguments', function () {
+				expect(Type).to.be.calledWithExactly(arg0);
+				expect(Type).to.be.calledWithExactly(arg0, arg1);
+				expect(Type).to.be.calledWithExactly(arg0, arg1, arg2);
+				expect(Type).to.be.calledWithExactly(arg0, arg1, arg2, arg3);
+				expect(Type).to.be.calledWithExactly(arg0, arg1, arg2, arg3, arg4);
+			});
+		});
 	});
 
 	describe('release', function () {
 		var item;
 
-		describe('when an item has been allocated', function () {
+		describe('when an item has previously been allocated', function () {
 			beforeEach(function () {
 				item = pool.allocate();
 				pool.release(item);
@@ -143,4 +177,79 @@ describe('object-pool', function () {
 			});
 		});
 	});
+
+	describe('forEach', function () {
+		var item0, item1, item2, item3, item4;
+		var fn;
+
+		beforeEach(function () {
+			item0 = pool.allocate();
+			item1 = pool.allocate();
+			item2 = pool.allocate();
+			item3 = pool.allocate();
+			item4 = pool.allocate();
+
+			pool.release(item1);
+			pool.release(item3);
+
+			fn = sandbox.stub();
+
+			pool.forEach(fn);
+		});
+
+		it('should trigger callback function for each allocated item', function () {
+			expect(fn).to.be.calledThrice;
+			expect(fn).calledWithExactly(item0);
+			expect(fn).calledWithExactly(item2);
+			expect(fn).calledWithExactly(item4);
+		});
+
+		it('should not trigger callback function for released items', function () {
+			expect(fn).to.not.be.calledWith(item1);
+			expect(fn).to.not.be.calledWith(item3);
+		});
+
+		[ 'allocate', 'release', 'forEach', 'clean' ].forEach(function (operation) {
+			it('should throw an error if we try to perform "' + operation + '" during forEach loop', function () {
+				fn = function () {
+					pool.forEach(function (item) {
+						// Note: sending "item" to each method if okay for now, but may cause errors in future
+						pool[operation](item);
+					});
+				};
+
+				expect(fn).to.throw('forEach');
+			});
+		});
+	});
+
+	describe('clean', function () {
+		beforeEach(function () {
+			initialisePool(10, 5);
+			pool.clean();
+		});
+
+		it('should remove any released items from store', function () {
+			expect(pool.info().released).to.equal(0);
+		});
+	});
+
+	// helper to setup pool for test by allocating and releasing some items
+	function initialisePool(allocateCount, releaseCount) {
+		var items = [];
+		var i;
+
+		for (i = 0; i < allocateCount; ++i) {
+			items.push(pool.allocate());
+		}
+
+		for (i = 0; i < releaseCount; ++i) {
+			pool.release(items[i]);
+		}
+
+		expect(pool.info()).to.deep.equal({
+			allocated: allocateCount - releaseCount,
+			released: releaseCount
+		});
+	}
 });
