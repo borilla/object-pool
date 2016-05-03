@@ -3,7 +3,7 @@ Reusable pool of objects to reduce garbage collection
 ## Usage
 ### Creating a new pool
 ```javascript
-var Pool = require('object-pool');
+var Pool = require('@borilla/object-pool');
 
 // constructor for items to be managed by pool
 var MyType = function (arg1, arg2) { ... };
