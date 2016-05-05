@@ -4,10 +4,11 @@ var poolIndex = '_poolIndex';
 var poolPrototype = Pool.prototype;
 var bind = Function.prototype.bind;
 
-function Pool(Type) {
+function Pool(Type, onError) {
 	var pool = this;
 
 	pool._Type = Type;
+	pool._onError = onError;
 	pool._store = [];
 	pool._storeTopIndex = -1;
 	pool._isLocked = false;
@@ -20,23 +21,23 @@ poolPrototype.allocate = function () {
 	var Type = pool._Type;
 	var item;
 
-	checkIsNotLocked(pool, 'allocate');
+	if (pool._checkIsNotLocked('allocate')) {
+		// if no released slots in store
+		if (storeTopIndex === store.length) {
+			// create a new item and add it to store
+			item = this._createNewItem.apply(this, arguments);
+			store.push(item);
+		}
+		else {
+			// get a released item and call constructor function on it
+			item = store[pool._storeTopIndex];
+			Type.apply(item, arguments);
+		}
 
-	// if no released slots in store
-	if (storeTopIndex === store.length) {
-		// create a new item and add it to store
-		item = this._createNewItem.apply(this, arguments);
-		store.push(item);
+		item[poolIndex] = storeTopIndex;
+
+		return item;
 	}
-	else {
-		// get a released item and call constructor function on it
-		item = store[pool._storeTopIndex];
-		Type.apply(item, arguments);
-	}
-
-	item[poolIndex] = storeTopIndex;
-
-	return item;
 };
 
 poolPrototype.release = function (item) {
@@ -44,25 +45,25 @@ poolPrototype.release = function (item) {
 	var index = item[poolIndex];
 	var topItem;
 
-	checkIsNotLocked(pool, 'release');
-	checkIsAllocated(item);
+	if (pool._checkIsNotLocked('release') && pool._checkIsAllocated(item)) {
+		if (index < pool._storeTopIndex) {
+			topItem = pool._store[pool._storeTopIndex];
+			topItem[poolIndex] = index;
+			pool._store[index] = topItem;
+			pool._store[pool._storeTopIndex] = item;
+		}
 
-	if (index < pool._storeTopIndex) {
-		topItem = pool._store[pool._storeTopIndex];
-		topItem[poolIndex] = index;
-		pool._store[index] = topItem;
-		pool._store[pool._storeTopIndex] = item;
+		item[poolIndex] = null;
+		pool._storeTopIndex--;
 	}
-
-	item[poolIndex] = null;
-	pool._storeTopIndex--;
 };
 
 poolPrototype.clean = function () {
 	var pool = this;
 
-	checkIsNotLocked(pool, 'clean');
-	pool._store.length = pool._storeTopIndex + 1;
+	if (pool._checkIsNotLocked('clean')) {
+		pool._store.length = pool._storeTopIndex + 1;
+	}
 };
 
 poolPrototype.forEach = function (fn) {
@@ -70,14 +71,15 @@ poolPrototype.forEach = function (fn) {
 	var store = pool._store;
 	var i, l;
 
-	checkIsNotLocked(pool, 'forEach');
-	pool._isLocked = true;
+	if (pool._checkIsNotLocked('forEach')) {
+		pool._isLocked = true;
 
-	for (i = 0, l = pool._storeTopIndex + 1; i < l; ++i) {
-		fn(store[i]);
+		for (i = 0, l = pool._storeTopIndex + 1; i < l; ++i) {
+			fn(store[i]);
+		}
+
+		pool._isLocked = false;
 	}
-
-	pool._isLocked = false;
 };
 
 poolPrototype.info = function () {
@@ -120,16 +122,26 @@ poolPrototype._createNewItem = function (arg0, arg1, arg2, arg3) {
 	return new (bind.apply(Type, arr));
 };
 
-function checkIsNotLocked(pool, action) {
-	if (pool._isLocked) {
-		throw Error('Cannot perform "' + action + '" while inside "forEach" loop');
-	}
-}
+poolPrototype._checkIsNotLocked = function (action) {
+	var pool = this;
+	var isLocked = pool._isLocked;
+	var onError = pool._onError;
 
-function checkIsAllocated(item) {
-	if (typeof item[poolIndex] !== 'number') {
-		throw Error('Item is not currently allocated');
+	if (isLocked) {
+		onError && onError('Cannot perform "' + action + '" while inside "forEach" loop');
 	}
-}
+	return !isLocked;
+};
+
+poolPrototype._checkIsAllocated = function (item) {
+	var pool = this;
+	var isValidIndex = typeof item[poolIndex] === 'number';
+	var onError = pool._onError;
+
+	if (!isValidIndex) {
+		onError && onError('Item is not currently allocated');
+	}
+	return isValidIndex;
+};
 
 module.exports = Pool;

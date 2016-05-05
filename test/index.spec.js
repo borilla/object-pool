@@ -12,14 +12,15 @@ describe('object-pool', function () {
 	var arg2 = 'arg2';
 	var arg3 = 'arg3';
 	var arg4 = 'arg4';
-	var sandbox, Type, pool;
+	var sandbox, Type, onError, pool;
 
 	beforeEach(function () {
 		sandbox = sinon.sandbox.create();
 		Type = sandbox.spy(function () {
 			this.wasAllocatedWithNew = this.wasAllocatedWithNew === undefined;
 		});
-		pool = new Pool(Type);
+		onError = sinon.stub();
+		pool = new Pool(Type, onError);
 	});
 
 	afterEach(function () {
@@ -152,28 +153,30 @@ describe('object-pool', function () {
 			beforeEach(function () {
 				item = pool.allocate();
 				pool.release(item);
+				pool.release(item);
 			});
 
-			it('should throw an error', function () {
-				function releaseAgain() {
-					pool.release(item);
-				}
+			it('should call onError callback (if provided)', function () {
+				expect(onError).to.be.calledOnce;
+			});
 
-				expect(releaseAgain).to.throw(Error);
+			it('should provide an appropriate error message', function () {
+				expect(onError).to.be.calledWithMatch('not currently allocated');
 			});
 		});
 
 		describe('when item was created outside the object-pool', function () {
 			beforeEach(function () {
 				item = new Type();
+				pool.release(item);
 			});
 
-			it('should throw an error', function () {
-				function release() {
-					pool.release(item);
-				}
+			it('should call onError callback (if provided)', function () {
+				expect(onError).to.be.calledOnce;
+			});
 
-				expect(release).to.throw(Error);
+			it('should provide an appropriate error message', function () {
+				expect(onError).to.be.calledWithMatch('not currently allocated');
 			});
 		});
 	});
@@ -210,15 +213,30 @@ describe('object-pool', function () {
 		});
 
 		[ 'allocate', 'release', 'forEach', 'clean' ].forEach(function (operation) {
-			it('should throw an error if we try to perform "' + operation + '" during forEach loop', function () {
-				fn = function () {
-					pool.forEach(function (item) {
-						// Note: sending "item" to each method if okay for now, but may cause errors in future
-						pool[operation](item);
-					});
-				};
+			describe('when we try to perform "' + operation + '" during forEach loop', function () {
+				var doOperation;
 
-				expect(fn).to.throw('forEach');
+				beforeEach(function () {
+					doOperation = sinon.spy(function (item) {
+						// NOTE: sending "item" to each method is okay for now, but may cause errors in future
+						return pool[operation](item);
+					});
+
+					pool.forEach(doOperation);
+				});
+
+				it('should call onError callback', function () {
+					// onError will be called for each iteration of our loop
+					expect(onError).to.be.calledThrice;
+				});
+
+				it('should provide an appropriate error message', function () {
+					expect(onError).to.be.calledWithMatch('inside "forEach" loop');
+				});
+
+				it('"' + operation + '" should return undefined', function () {
+					expect(doOperation.alwaysReturned(undefined)).to.equal(true);
+				});
 			});
 		});
 	});
