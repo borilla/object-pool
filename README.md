@@ -17,7 +17,7 @@ Reusable pool of objects to reduce garbage collection
 
 Intall the module using npm. The module isn't published yet but can be installed from the github repo:
 ```shell
-$ npm install --save https://github.com/borilla/object-pool.git
+$ npm install --save borilla/object-pool
 ```
 
 ## Usage
