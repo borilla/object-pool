@@ -1,6 +1,6 @@
 {
   "name": "@borilla/object-pool",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Reusable pool of objects to reduce garbage collection",
   "main": "lib/index.min.js",
   "scripts": {
