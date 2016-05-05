@@ -1,3 +1,5 @@
+'use strict';
+
 var Pool = require('../lib/index.min');
 var chai = require('chai');
 var sinon = require('sinon');
@@ -7,16 +9,21 @@ var expect = chai.expect;
 chai.use(sinonChai);
 
 describe('object-pool', function () {
-	var arg0 = 'arg0';
-	var arg1 = 'arg1';
-	var arg2 = 'arg2';
-	var arg3 = 'arg3';
-	var arg4 = 'arg4';
-	var sandbox, Type, onError, pool;
+	var arg0, arg1, arg2, arg3, arg4;
+	var sandbox, Type, onError, poolIndexProp, pool;
+
+	before(function () {
+		arg0 = 'arg0';
+		arg1 = 'arg1';
+		arg2 = 'arg2';
+		arg3 = 'arg3';
+		arg4 = 'arg4';
+		poolIndexProp = '_customPoolIndexProp';
+	});
 
 	beforeEach(function () {
 		sandbox = sinon.sandbox.create();
-		Type = sandbox.spy(function () {
+		Type = sandbox.spy(function Type() {
 			this.wasAllocatedWithNew = this.wasAllocatedWithNew === undefined;
 		});
 		onError = sinon.stub();
@@ -57,6 +64,10 @@ describe('object-pool', function () {
 				expect(item).to.be.an.instanceof(Type);
 			});
 
+			it('should set "poolIndexProp" property of the created item', function () {
+				expect(item[poolIndexProp]).to.be.a.number;
+			});
+
 			it('should reflect that item has been allocated', function () {
 				expect(pool.info()).to.deep.equal({
 					allocated: 3,
@@ -83,6 +94,10 @@ describe('object-pool', function () {
 
 			it('should return an object of type Type', function () {
 				expect(item).to.be.an.instanceof(Type);
+			});
+
+			it('should set "poolIndexProp" property of the created item', function () {
+				expect(item[poolIndexProp]).to.be.a.number;
 			});
 
 			it('should reflect that item has been allocated', function () {
@@ -128,6 +143,27 @@ describe('object-pool', function () {
 				expect(Type).to.be.calledWithExactly(arg0, arg1, arg2);
 				expect(Type).to.be.calledWithExactly(arg0, arg1, arg2, arg3);
 				expect(Type).to.be.calledWithExactly(arg0, arg1, arg2, arg3, arg4);
+			});
+		});
+
+		describe('when no "poolIndexProp" parameter is provided to Pool constructor', function () {
+			var prevPoolIndexProp;
+
+			before(function () {
+				prevPoolIndexProp = poolIndexProp;
+				poolIndexProp = undefined;
+			});
+
+			beforeEach(function () {
+				item = pool.allocate();
+			});
+
+			it('should use the default value', function () {
+				expect(item._poolIndex).to.be.a.number;
+			});
+
+			after(function () {
+				poolIndexProp = prevPoolIndexProp;
 			});
 		});
 	});

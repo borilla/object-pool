@@ -1,14 +1,14 @@
 'use strict';
 
-var poolIndex = '_poolIndex';
 var poolPrototype = Pool.prototype;
 var bind = Function.prototype.bind;
 
-function Pool(Type, onError) {
+function Pool(Type, onError, poolIndexProp) {
 	var pool = this;
 
 	pool._Type = Type;
 	pool._onError = onError;
+	pool._poolIndexProp = poolIndexProp || '_poolIndex';
 	pool._store = [];
 	pool._storeTopIndex = -1;
 	pool._isLocked = false;
@@ -19,6 +19,7 @@ poolPrototype.allocate = function () {
 	var store = pool._store;
 	var storeTopIndex = ++pool._storeTopIndex;
 	var Type = pool._Type;
+	var poolIndexProp = pool._poolIndexProp;
 	var item;
 
 	if (pool._checkIsNotLocked('allocate')) {
@@ -34,7 +35,7 @@ poolPrototype.allocate = function () {
 			Type.apply(item, arguments);
 		}
 
-		item[poolIndex] = storeTopIndex;
+		item[poolIndexProp] = storeTopIndex;
 
 		return item;
 	}
@@ -42,18 +43,19 @@ poolPrototype.allocate = function () {
 
 poolPrototype.release = function (item) {
 	var pool = this;
-	var index = item[poolIndex];
+	var poolIndexProp = pool._poolIndexProp;
+	var itemIndex = item[poolIndexProp];
 	var topItem;
 
 	if (pool._checkIsNotLocked('release') && pool._checkIsAllocated(item)) {
-		if (index < pool._storeTopIndex) {
+		if (itemIndex < pool._storeTopIndex) {
 			topItem = pool._store[pool._storeTopIndex];
-			topItem[poolIndex] = index;
-			pool._store[index] = topItem;
+			topItem[poolIndexProp] = itemIndex;
+			pool._store[itemIndex] = topItem;
 			pool._store[pool._storeTopIndex] = item;
 		}
 
-		item[poolIndex] = null;
+		item[poolIndexProp] = null;
 		pool._storeTopIndex--;
 	}
 };
@@ -135,7 +137,8 @@ poolPrototype._checkIsNotLocked = function (action) {
 
 poolPrototype._checkIsAllocated = function (item) {
 	var pool = this;
-	var isValidIndex = typeof item[poolIndex] === 'number';
+	var poolIndexProp = pool._poolIndexProp;
+	var isValidIndex = typeof item[poolIndexProp] === 'number';
 	var onError = pool._onError;
 
 	if (!isValidIndex) {
