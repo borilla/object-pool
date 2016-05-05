@@ -1,7 +1,16 @@
 {
   "name": "@borilla/object-pool",
-  "version": "0.1.2",
+  "version": "0.1.3",
+  "author": "borilla",
   "description": "Reusable pool of objects to reduce garbage collection",
+  "keywords": [
+    "object",
+    "pool",
+    "garbage",
+    "collection"
+  ],
+  "license": "MIT",
+  "repository" : "borilla/object-pool",
   "main": "lib/index.min.js",
   "scripts": {
     "clean": "rimraf lib/*",
@@ -12,14 +21,6 @@
     "test": "npm run build && npm run unit-test && npm run lint",
     "prepublish": "npm test"
   },
-  "keywords": [
-    "object",
-    "pool",
-    "garbage",
-    "collection"
-  ],
-  "author": "borilla",
-  "license": "MIT",
   "devDependencies": {
     "chai": "^3.5.0",
     "eslint": "^2.8.0",
