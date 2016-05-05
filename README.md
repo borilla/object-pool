@@ -5,13 +5,16 @@ Reusable pool of objects to reduce garbage collection
 ## TOC
 
 * [Installation](#installation)
-* [Usage](#usage)
+* [General usage](#general-usage)
   * [Creating a new pool](#creating-a-new-pool)
   * [Allocating an item](#allocating-an-item)
   * [Releasing an item](#releasing-an-item)
   * [Iterating through items](#iterating-through-items)
+* [Advanced usage](#advanced-usage)
   * [Removing released items](#removing-released-items)
   * [Getting info about pool](#getting-info-about-pool)
+  * [Detecting errors](#detecting-errors)
+  * [Changing `_poolIndex` property](#changing-_poolindex-property)
 
 ## Installation
 
@@ -20,9 +23,7 @@ Intall the module using npm. The module isn't published yet but can be installed
 $ npm install --save borilla/object-pool
 ```
 
-## Usage
-
-In your javascript code:
+## General usage
 
 ### Creating a new pool
 
@@ -52,7 +53,7 @@ var myItem = myPool.allocate('arg1', 'arg2');
 myPool.release(myItem);
 ```
 * Will mark the released item as no longer used, thus make it available for reallocation
-* Trying to release an item that has already been released will throw an **error**
+* Trying to release an item that has already been released will call the pool's [error handler](#detecting-errors) if defined
 
 ### Iterating through items
 
@@ -64,7 +65,9 @@ myPool.forEach(function (item) {
 ```
 * Will call provided callback function for all currently allocated items
 * Items will not necessarily be in the same **order** as they were allocated
-* Calling any other method on `myPool` during the `forEach` loop will throw an **error**
+* **Warning:** Calling any other method on `myPool` during the `forEach` loop will return `undefined` instead of any expected value and will call the pool's [error handler](#detecting-errors) if defined
+
+## Extended usage
 
 ### Removing released items
 
@@ -81,4 +84,39 @@ myPool.clean();
 myPool.info(); // eg { allocated: 10, released: 5 }
 ```
 * Gets current counts of allocated and released items
-* Creates a new object [that will need to be **garbage collected!!!**], so really for debug use only
+* **Warning:** Creates a new object [that will need to be **garbage collected!!!**], so really for debug use only
+
+### Detecting errors
+
+If we want to know when/if any errors occur in the pool, we can pass our own custom error handler
+callback to the pool's constructor function, eg
+
+```javascript
+// custom error handler, log any error messages to console
+function onError(msg) {
+	console.log('Something went wrong with object-pool: ' + msg);
+}
+
+// create a pool (passing in our error handler)
+var myPool = new Pool(Type, onError);
+```
+* Error handler will be sent a short error description
+* If no handler is provided then the method that caused the error will fail silently
+* Examples of errors include:
+  * Trying to allocate an item while within a `pool.forEach()` loop
+  * Trying to release an item that has already been released
+
+### Changing `_poolIndex` property
+
+By default, each allocated item will have an additional property added, called `_poolIndex`.
+While unlikely, it is possible that this name might clash with one of the object's property
+names. To mitigate this we can provide our own custom property identifier to the pool's
+constructor, eg
+
+```javascript
+// we're using es2015 so can use a Symbol() to guarantee no clash is possible :)
+const poolIndex = Symbol('poolIndex');
+
+// create a pool (passing in pool-index identifier)
+const myPool = new Pool(Type, /*onError*/, poolIndex);
+```
