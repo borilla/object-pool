@@ -44,7 +44,7 @@ var myPool = new Pool(Type);
 var myItem = myPool.allocate('arg1', 'arg2');
 ```
 * Internally, the module will effectively call `new MyType()` or `MyType.apply(item)` depending on whether we're creating a new item or reallocating a previously released one
-* In either case, any arguments sent to `allocate()` will be also passed to the constructor function
+* Any arguments sent to `allocate()` will be passed to the constructor function
 
 ### Releasing an item
 
@@ -65,7 +65,7 @@ myPool.forEach(function (item) {
 ```
 * Will call provided callback function for all currently allocated items
 * Items will not necessarily be in the same **order** as they were allocated
-* **Warning:** Calling any other method on `myPool` during the `forEach` loop will return `undefined` instead of any expected value and will call the pool's [error handler](#detecting-errors) if defined
+* **Warning:** Calling _any_ other method on `myPool` during the `forEach` loop will fail (returning `undefined` instead of any expected value) and will call the pool's [error handler](#detecting-errors) if defined
 
 ## Extended usage
 
@@ -75,7 +75,7 @@ myPool.forEach(function (item) {
 // allow released items to be garbage collected
 myPool.clean();
 ```
-* If we've allocated and released a lot of items we might want some memory back after all
+* If we've allocated and released a lot of items we might want some memory back after all. This method truncates the internal array, thus losing references to "released" items, allowing them to be garbage collected
 
 ### Getting info about pool
 
