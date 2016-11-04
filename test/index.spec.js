@@ -1,6 +1,6 @@
 'use strict';
 
-var Pool = require('../lib/index.min');
+var Pool = require('../src/index');
 var chai = require('chai');
 var sinon = require('sinon');
 var sinonChai = require('sinon-chai');

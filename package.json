@@ -13,13 +13,14 @@
   "repository": "borilla/object-pool",
   "main": "lib/index.min.js",
   "scripts": {
+    "test": "npm run unit-test && npm run lint",
+    "build": "npm run clean && npm run minify",
+    "unit-test": "mocha test",
+    "lint": "eslint src test",
     "clean": "rimraf lib/*",
     "minify": "uglifyjs src/index.js --compress --mangle-props --mangle-regex=\"/^_/\" --mangle toplevel --screw-ie8 --output lib/index.min.js",
-    "lint": "eslint src test",
-    "unit-test": "mocha test",
-    "build": "npm run clean && npm run minify",
-    "test": "npm run build && npm run unit-test && npm run lint",
-    "prepublish": "npm test"
+    "prebuild": "npm test",
+    "prepublish": "npm run build"
   },
   "devDependencies": {
     "chai": "^3.5.0",
