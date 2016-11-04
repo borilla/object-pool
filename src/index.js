@@ -26,7 +26,7 @@ poolPrototype.allocate = function () {
 		// if no released slots in store
 		if (storeTopIndex === store.length) {
 			// create a new item and add it to store
-			item = this._createNewItem.apply(this, arguments);
+			item = pool._createNewItem.apply(pool, arguments);
 			store.push(item);
 		}
 		else {
@@ -129,8 +129,8 @@ poolPrototype._checkIsNotLocked = function (action) {
 	var isLocked = pool._isLocked;
 	var onError = pool._onError;
 
-	if (isLocked) {
-		onError && onError('Cannot perform "' + action + '" while inside "forEach" loop');
+	if (isLocked && onError) {
+		onError('Cannot perform "' + action + '" while inside "forEach" loop');
 	}
 	return !isLocked;
 };
@@ -141,8 +141,8 @@ poolPrototype._checkIsAllocated = function (item) {
 	var isValidIndex = typeof item[poolIndexProp] === 'number';
 	var onError = pool._onError;
 
-	if (!isValidIndex) {
-		onError && onError('Item is not currently allocated');
+	if (!isValidIndex && onError) {
+		onError('Item is not currently allocated');
 	}
 	return isValidIndex;
 };

@@ -34,7 +34,7 @@ var Pool = require('@borilla/object-pool');
 var MyType = function (arg1, arg2) { ... };
 
 // create a pool for this type
-var myPool = new Pool(Type);
+var myPool = new Pool(MyType);
 ```
 
 ### Allocating an item

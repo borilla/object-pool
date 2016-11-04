@@ -1,6 +1,6 @@
 {
   "name": "@borilla/object-pool",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "author": "borilla",
   "description": "Reusable pool of objects to reduce garbage collection",
   "keywords": [
@@ -10,7 +10,7 @@
     "collection"
   ],
   "license": "MIT",
-  "repository" : "borilla/object-pool",
+  "repository": "borilla/object-pool",
   "main": "lib/index.min.js",
   "scripts": {
     "clean": "rimraf lib/*",
