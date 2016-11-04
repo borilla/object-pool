@@ -10,7 +10,7 @@ Reusable pool of objects to reduce garbage collection
   * [Allocating an item](#allocating-an-item)
   * [Releasing an item](#releasing-an-item)
   * [Iterating through items](#iterating-through-items)
-* [Advanced usage](#advanced-usage)
+* [Extended usage](#extended-usage)
   * [Removing released items](#removing-released-items)
   * [Getting info about pool](#getting-info-about-pool)
   * [Detecting errors](#detecting-errors)
@@ -43,7 +43,7 @@ var myPool = new Pool(MyType);
 // get a [new or released] item from the pool
 var myItem = myPool.allocate('arg1', 'arg2');
 ```
-* Internally, the module will effectively call `new MyType()` or `MyType.apply(item)` depending on whether we're creating a new item or reallocating a previously released one
+* Internally, the module will effectively call `new MyType()` or `MyType.apply(releasedItem)` depending on whether we're creating a new item or reallocating a previously released one
 * Any arguments sent to `allocate()` will be passed to the constructor function
 
 ### Releasing an item
@@ -98,7 +98,7 @@ function onError(msg) {
 }
 
 // create a pool (passing in our error handler)
-var myPool = new Pool(Type, onError);
+var myPool = new Pool(MyType, onError);
 ```
 * Error handler will be sent a short error description
 * If no handler is provided then the method that caused the error will fail silently
@@ -118,5 +118,5 @@ constructor, eg
 const poolIndex = Symbol('poolIndex');
 
 // create a pool (passing in pool-index identifier)
-const myPool = new Pool(Type, /*onError*/, poolIndex);
+const myPool = new Pool(MyType, /*onError*/, poolIndex);
 ```
