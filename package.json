@@ -1,6 +1,6 @@
 {
   "name": "@borilla/object-pool",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "author": "borilla",
   "description": "Reusable pool of objects to reduce garbage collection",
   "keywords": [

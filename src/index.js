@@ -45,14 +45,15 @@ poolPrototype.release = function (item) {
 	var pool = this;
 	var poolIndexProp = pool._poolIndexProp;
 	var itemIndex = item[poolIndexProp];
-	var topItem;
+	var topItem, store;
 
 	if (pool._checkIsNotLocked('release') && pool._checkIsAllocated(item)) {
 		if (itemIndex < pool._storeTopIndex) {
-			topItem = pool._store[pool._storeTopIndex];
+			store = pool._store;
+			topItem = store[pool._storeTopIndex];
 			topItem[poolIndexProp] = itemIndex;
-			pool._store[itemIndex] = topItem;
-			pool._store[pool._storeTopIndex] = item;
+			store[itemIndex] = topItem;
+			store[pool._storeTopIndex] = item;
 		}
 
 		item[poolIndexProp] = null;
