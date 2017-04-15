@@ -43,7 +43,7 @@ var myPool = new Pool(MyType);
 // get a [new or released] item from the pool
 var myItem = myPool.allocate('arg1', 'arg2');
 ```
-* Internally, the module will effectively call `new MyType()` or `MyType.apply(releasedItem)` depending on whether we're creating a new item or reallocating a previously released one
+* Internally, the module will effectively call `new MyType(...)` or `MyType.apply(releasedItem, ...)` depending on whether we're creating a new item or reallocating a previously released one
 * Any arguments sent to `allocate()` will be passed to the constructor function
 
 ### Releasing an item
