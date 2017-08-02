@@ -10,7 +10,7 @@ chai.use(sinonChai);
 
 describe('object-pool', function () {
 	var arg0, arg1, arg2, arg3, arg4;
-	var sandbox, Type, onError, poolIndexProp, pool;
+	var poolIndexProp, sandbox, Type, onError, pool;
 
 	before(function () {
 		arg0 = 'arg0';
@@ -26,8 +26,8 @@ describe('object-pool', function () {
 		Type = sandbox.spy(function Type() {
 			this.wasAllocatedWithNew = this.wasAllocatedWithNew === undefined;
 		});
-		onError = sinon.stub();
-		pool = new Pool(Type, onError);
+		onError = sandbox.stub();
+		pool = new Pool(Type, onError, poolIndexProp);
 	});
 
 	afterEach(function () {
@@ -45,8 +45,11 @@ describe('object-pool', function () {
 		var item;
 
 		describe('when there are no released items', function () {
+			var ITEMS_TO_ALLOCATE = 2;
+			var ITEMS_TO_RELEASE = 0;
+
 			beforeEach(function () {
-				initialisePool(2, 0);
+				initialisePool(ITEMS_TO_ALLOCATE, ITEMS_TO_RELEASE);
 				Type.reset();
 				item = pool.allocate(arg1, arg2, arg3, arg4);
 			});
@@ -65,20 +68,23 @@ describe('object-pool', function () {
 			});
 
 			it('should set "poolIndexProp" property of the created item', function () {
-				expect(item[poolIndexProp]).to.be.a.number;
+				expect(item[poolIndexProp]).to.be.a('number');
 			});
 
 			it('should reflect that item has been allocated', function () {
 				expect(pool.info()).to.deep.equal({
-					allocated: 3,
+					allocated: ITEMS_TO_ALLOCATE + 1,
 					released: 0
 				});
 			});
 		});
 
 		describe('when there is a released item', function () {
+			var ITEMS_TO_ALLOCATE = 2;
+			var ITEMS_TO_RELEASE = 1;
+
 			beforeEach(function () {
-				initialisePool(2, 1);
+				initialisePool(ITEMS_TO_ALLOCATE, ITEMS_TO_RELEASE);
 				Type.reset();
 				item = pool.allocate(arg1, arg2);
 			});
@@ -97,13 +103,13 @@ describe('object-pool', function () {
 			});
 
 			it('should set "poolIndexProp" property of the created item', function () {
-				expect(item[poolIndexProp]).to.be.a.number;
+				expect(item[poolIndexProp]).to.be.a('number');
 			});
 
 			it('should reflect that item has been allocated', function () {
 				expect(pool.info()).to.deep.equal({
-					allocated: 2,
-					released: 0
+					allocated: ITEMS_TO_ALLOCATE,
+					released: ITEMS_TO_RELEASE - 1
 				});
 			});
 		});
@@ -127,8 +133,11 @@ describe('object-pool', function () {
 		});
 
 		describe('when reallocating released items', function () {
+			var ITEMS_TO_ALLOCATE = 5;
+			var ITEMS_TO_RELEASE = 5;
+
 			beforeEach(function () {
-				initialisePool(5, 5);
+				initialisePool(ITEMS_TO_ALLOCATE, ITEMS_TO_RELEASE);
 				Type.reset();
 				pool.allocate(arg0);
 				pool.allocate(arg0, arg1);
@@ -159,7 +168,7 @@ describe('object-pool', function () {
 			});
 
 			it('should use the default value', function () {
-				expect(item._poolIndex).to.be.a.number;
+				expect(item._poolIndex).to.be.a('number');
 			});
 
 			after(function () {
@@ -253,7 +262,7 @@ describe('object-pool', function () {
 				var doOperation;
 
 				beforeEach(function () {
-					doOperation = sinon.spy(function (item) {
+					doOperation = sandbox.spy(function (item) {
 						// NOTE: sending "item" to each method is okay for now, but may cause errors in future
 						return pool[operation](item);
 					});
@@ -262,7 +271,7 @@ describe('object-pool', function () {
 				});
 
 				it('should call onError callback', function () {
-					// onError will be called for each iteration of our loop
+					// onError will be called for each iteration of our loop, ie for each allocated item
 					expect(onError).to.be.calledThrice;
 				});
 
@@ -278,8 +287,11 @@ describe('object-pool', function () {
 	});
 
 	describe('clean', function () {
+		var ITEMS_TO_ALLOCATE = 10;
+		var ITEMS_TO_RELEASE = 5;
+
 		beforeEach(function () {
-			initialisePool(10, 5);
+			initialisePool(ITEMS_TO_ALLOCATE, ITEMS_TO_RELEASE);
 			pool.clean();
 		});
 
@@ -289,21 +301,21 @@ describe('object-pool', function () {
 	});
 
 	// helper to setup pool for test by allocating and releasing some items
-	function initialisePool(allocateCount, releaseCount) {
+	function initialisePool(itemsToAllocate, itemsToRelease) {
 		var items = [];
 		var i;
 
-		for (i = 0; i < allocateCount; ++i) {
+		for (i = 0; i < itemsToAllocate; ++i) {
 			items.push(pool.allocate());
 		}
 
-		for (i = 0; i < releaseCount; ++i) {
+		for (i = 0; i < itemsToRelease; ++i) {
 			pool.release(items[i]);
 		}
 
 		expect(pool.info()).to.deep.equal({
-			allocated: allocateCount - releaseCount,
-			released: releaseCount
+			allocated: itemsToAllocate - itemsToRelease,
+			released: itemsToRelease
 		});
 	}
 });

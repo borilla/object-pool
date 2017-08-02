@@ -45,15 +45,17 @@ poolPrototype.release = function (item) {
 	var pool = this;
 	var poolIndexProp = pool._poolIndexProp;
 	var itemIndex = item[poolIndexProp];
-	var topItem, store;
+	var store = pool._store;
+	var storeTopIndex = pool._storeTopIndex;
+	var topItem;
 
 	if (pool._checkIsNotLocked('release') && pool._checkIsAllocated(item)) {
-		if (itemIndex < pool._storeTopIndex) {
-			store = pool._store;
-			topItem = store[pool._storeTopIndex];
+		// if item is not the top item in the store then switch it with the top item
+		if (itemIndex < storeTopIndex) {
+			topItem = store[storeTopIndex];
 			topItem[poolIndexProp] = itemIndex;
 			store[itemIndex] = topItem;
-			store[pool._storeTopIndex] = item;
+			store[storeTopIndex] = item;
 		}
 
 		item[poolIndexProp] = null;
@@ -128,22 +130,19 @@ poolPrototype._createNewItem = function (arg0, arg1, arg2, arg3) {
 poolPrototype._checkIsNotLocked = function (action) {
 	var pool = this;
 	var isLocked = pool._isLocked;
-	var onError = pool._onError;
 
-	if (isLocked && onError) {
-		onError('Cannot perform "' + action + '" while inside "forEach" loop');
+	if (isLocked && pool._onError) {
+		pool._onError('Cannot perform "' + action + '" while inside "forEach" loop');
 	}
 	return !isLocked;
 };
 
 poolPrototype._checkIsAllocated = function (item) {
 	var pool = this;
-	var poolIndexProp = pool._poolIndexProp;
-	var isValidIndex = typeof item[poolIndexProp] === 'number';
-	var onError = pool._onError;
+	var isValidIndex = typeof item[pool._poolIndexProp] === 'number';
 
-	if (!isValidIndex && onError) {
-		onError('Item is not currently allocated');
+	if (!isValidIndex && pool._onError) {
+		pool._onError('Item is not currently allocated');
 	}
 	return isValidIndex;
 };
